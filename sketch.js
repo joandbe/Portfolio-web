@@ -1,16 +1,21 @@
 // ==========================================
-// PALETA DE COLORES PANTONE ORIGINAL
+// PALETA DE COLORES EDITORIAL
 // ==========================================
-let COLOR_GOAT_MILK;      // #E7E5DB -> Fondo claro para cuadros/tarjetas
-let COLOR_SANDLIGHT;      // #AD9E89 -> Fondo del lienzo (web)
-let COLOR_CHARCOAL;       // #191A1E -> Textos principales / Footer
-let COLOR_MULLED_WINE;    // #49110B -> Títulos, números y acentos
-let COLOR_WOODLAND;       // #56483B -> Líneas de contorno y detalles
-let COLOR_ANTIQUE_MARBLE; // #C8C2B7 -> Bloques translúcidos/Fondos suaves
+let COLOR_GOAT_MILK;      
+let COLOR_SANDLIGHT;      
+let COLOR_CHARCOAL;       
+let COLOR_MULLED_WINE;    
+let COLOR_WOODLAND;       
+let COLOR_ANTIQUE_MARBLE; 
 
 let scrollY = 0;
 let targetScrollY = 0;
 let totalHeight = 0;
+
+// Sistema de animación para el modal
+let modalProgress = 0;
+let targetModalProgress = 0;
+let proyectoSeleccionadoActivo = null;
 
 let proyectos = [
   { 
@@ -51,14 +56,12 @@ let proyectos = [
 
 let GITHUB_PROFILE_URL = "https://github.com/joandbe";
 let imagenes = [];
-let imagenPortada; // Variable independiente para la portada
+let imagenPortada;
 let proyectoSeleccionado = null;
 
 function preload() {
-  // Carga independiente de la imagen de portada
   imagenPortada = loadImage("croquera.jpeg", () => {}, () => imagenPortada = null);
 
-  // Carga del arreglo de imágenes de proyectos
   for (let i = 0; i < proyectos.length; i++) {
     let path = proyectos[i].imgPath;
     let ruta = encodeURI(path);
@@ -71,7 +74,6 @@ function setup() {
   let container = document.getElementById("canvas-container");
   if (container) canvas.parent(container);
 
-  // Asignación de paleta Pantone original
   COLOR_GOAT_MILK = color('#E7E5DB');
   COLOR_SANDLIGHT = color('#AD9E89');
   COLOR_CHARCOAL = color('#191A1E');
@@ -94,6 +96,13 @@ function draw() {
   background(COLOR_SANDLIGHT);
 
   scrollY = lerp(scrollY, targetScrollY, 0.1);
+  modalProgress = lerp(modalProgress, targetModalProgress, 0.15);
+
+  // Limpiar selección cuando la animación del modal termina de cerrarse
+  if (modalProgress < 0.01 && targetModalProgress === 0) {
+    proyectoSeleccionado = null;
+  }
+
   let algunHover = false;
   let isMobile = width < 768;
 
@@ -123,8 +132,8 @@ function draw() {
   // Footer Fijo
   drawFooter();
 
-  // Modal
-  if (proyectoSeleccionado !== null) {
+  // Modal con animación fluida
+  if (modalProgress > 0.001) {
     drawModal();
     algunHover = true;
   }
@@ -133,16 +142,27 @@ function draw() {
 }
 
 // ==========================================
-// PORTADA EDITORIAL
+// PORTADA EDITORIAL CON PROFUNDIDAD
 // ==========================================
 function drawEditorialCover(startY, coverH) {
   let margin = max(15, width * 0.04);
   let coverW = width - margin * 2;
   let isMobile = width < 768;
 
-  fill(COLOR_MULLED_WINE);
+  // Sombra ambiental del bloque principal
+  fill(25, 26, 30, 35);
   noStroke();
-  rect(margin, startY, coverW, coverH);
+  rect(margin + 6, startY + 6, coverW, coverH, 4);
+
+  // Fondo principal portada
+  fill(COLOR_MULLED_WINE);
+  rect(margin, startY, coverW, coverH, 4);
+
+  // Línea sutil de acento lumínico interior
+  stroke(255, 255, 255, 25);
+  strokeWeight(1);
+  noFill();
+  rect(margin + 2, startY + 2, coverW - 4, coverH - 4, 3);
 
   noStroke();
   fill(COLOR_GOAT_MILK);
@@ -152,24 +172,24 @@ function drawEditorialCover(startY, coverH) {
 
   if (!isMobile) {
     textSize(min(coverW * 0.1, 85));
-    text("PORT", margin + 40, startY + 40);
-    text("FOLIO", margin + 40, startY + 120);
+    text("PORT", margin + 45, startY + 45);
+    text("FOLIO", margin + 45, startY + 125);
 
     textSize(28);
-    text("2026", margin + 40, startY + 220);
+    text("2026", margin + 45, startY + 225);
 
     textFont('Inter');
     textSize(13);
     textStyle(NORMAL);
-    text("Joan Dídac Barbé Espinoza\nTaller de Diseño de Interfaces\nSegundo Semestre 2026", margin + 40, startY + 340);
+    text("Joan Dídac Barbé Espinoza\nTaller de Diseño de Interfaces\nSegundo Semestre 2026", margin + 45, startY + 340);
 
     let imgW = coverW * 0.45;
     let imgH = coverH - 60;
-    let imgX = margin + coverW - imgW - 30;
+    let imgX = margin + coverW - imgW - 35;
     let imgY = startY + 30;
 
     fill(COLOR_WOODLAND);
-    rect(imgX - 4, imgY - 4, imgW + 8, imgH + 8);
+    rect(imgX - 4, imgY - 4, imgW + 8, imgH + 8, 2);
     if (imagenPortada) renderImagen(imagenPortada, imgX, imgY, imgW, imgH);
 
   } else {
@@ -186,7 +206,7 @@ function drawEditorialCover(startY, coverH) {
     let imgX = margin + 20;
     let imgY = startY + 190;
     fill(COLOR_WOODLAND);
-    rect(imgX - 2, imgY - 2, imgW + 4, imgH + 4);
+    rect(imgX - 2, imgY - 2, imgW + 4, imgH + 4, 2);
     if (imagenPortada) renderImagen(imagenPortada, imgX, imgY, imgW, imgH);
   }
 }
@@ -203,10 +223,14 @@ function drawContentAndAboutSection(startY, isMobile) {
     let pageH = 460;
 
     // Columna Izquierda: Content
+    fill(25, 26, 30, 25);
+    noStroke();
+    rect(margin + 4, startY + 4, pageWidth, pageH, 4);
+
     fill(COLOR_GOAT_MILK);
     stroke(COLOR_WOODLAND);
     strokeWeight(1.5);
-    rect(margin, startY, pageWidth, pageH);
+    rect(margin, startY, pageWidth, pageH, 4);
 
     noStroke();
     fill(COLOR_CHARCOAL);
@@ -218,8 +242,8 @@ function drawContentAndAboutSection(startY, isMobile) {
 
     for (let i = 0; i < proyectos.length; i++) {
       let itemY = startY + 100 + i * 65;
-      stroke(COLOR_WOODLAND);
-      strokeWeight(0.5);
+      stroke(COLOR_ANTIQUE_MARBLE);
+      strokeWeight(1);
       line(margin + 30, itemY, margin + pageWidth - 30, itemY);
 
       noStroke();
@@ -237,10 +261,14 @@ function drawContentAndAboutSection(startY, isMobile) {
 
     // Columna Derecha: About
     let rightX = margin + pageWidth + 20;
+    fill(25, 26, 30, 25);
+    noStroke();
+    rect(rightX + 4, startY + 4, pageWidth, pageH, 4);
+
     fill(COLOR_GOAT_MILK);
     stroke(COLOR_WOODLAND);
     strokeWeight(1.5);
-    rect(rightX, startY, pageWidth, pageH);
+    rect(rightX, startY, pageWidth, pageH, 4);
 
     noStroke();
     fill(COLOR_CHARCOAL);
@@ -253,7 +281,7 @@ function drawContentAndAboutSection(startY, isMobile) {
     textFont('Inter');
     textSize(13);
     textStyle(NORMAL);
-    let descText = "Portafolio enfocado en el desarrollo de experiencias web interactivas, síntesis de sonido, procesamiento de señal (DSP) e interfaces digitales limpias.\n\nCada proyecto explora la convergencia entre la tecnología web moderna (p5.js, Web Audio API, JavaScript) y el diseño visual estructurado.";
+    let descText = "Portafolio de de la asignatura Taller de Diseño de Interfaces, segundo semestre 2026.";
     text(descText, rightX + 30, startY + 90, pageWidth - 60, 200);
 
     if (imagenes[1]) {
@@ -266,7 +294,7 @@ function drawContentAndAboutSection(startY, isMobile) {
     fill(COLOR_GOAT_MILK);
     stroke(COLOR_WOODLAND);
     strokeWeight(1.5);
-    rect(margin, startY, totalW, pageH);
+    rect(margin, startY, totalW, pageH, 4);
 
     noStroke();
     fill(COLOR_CHARCOAL);
@@ -278,8 +306,8 @@ function drawContentAndAboutSection(startY, isMobile) {
 
     for (let i = 0; i < proyectos.length; i++) {
       let itemY = startY + 60 + i * 45;
-      stroke(COLOR_WOODLAND);
-      strokeWeight(0.5);
+      stroke(COLOR_ANTIQUE_MARBLE);
+      strokeWeight(1);
       line(margin + 20, itemY, margin + totalW - 20, itemY);
 
       noStroke();
@@ -306,7 +334,7 @@ function drawContentAndAboutSection(startY, isMobile) {
     textFont('Inter');
     textSize(12);
     textStyle(NORMAL);
-    let descText = "Portafolio de experiencias web interactivas, síntesis de sonido y diseño de interfaz.";
+    let descText = "El potafolio .";
     text(descText, margin + 20, aboutY + 40, totalW - 40, 100);
 
     if (imagenes[1]) {
@@ -318,7 +346,7 @@ function drawContentAndAboutSection(startY, isMobile) {
 }
 
 // ==========================================
-// PÁGINA DE PROYECTO
+// PÁGINA DE PROYECTO CON MICROINTERACCIÓN
 // ==========================================
 function drawProjectPage(p, img, yPos, index, isMobile, pageH) {
   let margin = max(15, width * 0.04);
@@ -327,16 +355,23 @@ function drawProjectPage(p, img, yPos, index, isMobile, pageH) {
   let realMouseY = mouseY + scrollY;
   let isHover = mouseX > margin && mouseX < margin + totalW && realMouseY > yPos && realMouseY < yPos + pageH;
 
+  // Sombra y elevación al hacer hover
+  if (isHover) {
+    fill(25, 26, 30, 45);
+    noStroke();
+    rect(margin + 4, yPos + 4, totalW, pageH, 4);
+  }
+
   fill(COLOR_GOAT_MILK);
   stroke(isHover ? COLOR_MULLED_WINE : COLOR_WOODLAND);
   strokeWeight(isHover ? 2.5 : 1.5);
-  rect(margin, yPos, totalW, pageH);
+  rect(margin, yPos, totalW, pageH, 4);
 
   if (!isMobile) {
     let pageW = (totalW - 20) / 2;
-    stroke(COLOR_WOODLAND);
-    strokeWeight(0.5);
-    line(margin + pageW + 10, yPos, margin + pageW + 10, yPos + pageH);
+    stroke(COLOR_ANTIQUE_MARBLE);
+    strokeWeight(1);
+    line(margin + pageW + 10, yPos + 15, margin + pageW + 10, yPos + pageH - 15);
 
     let textBlockX = (index % 2 === 0) ? margin + 40 : margin + pageW + 40;
     let textBlockW = pageW - 80;
@@ -346,7 +381,6 @@ function drawProjectPage(p, img, yPos, index, isMobile, pageH) {
 
     noStroke();
 
-    // Número gigante en Mulled Wine
     fill(COLOR_MULLED_WINE);
     textFont('Oswald');
     textSize(110);
@@ -354,11 +388,9 @@ function drawProjectPage(p, img, yPos, index, isMobile, pageH) {
     textAlign(LEFT, TOP);
     text(p.num, textBlockX, yPos + 25);
 
-    // Título en Mulled Wine
     textSize(24);
     text(p.titulo, textBlockX, yPos + 175, textBlockW);
 
-    // Descripción en Charcoal
     fill(COLOR_CHARCOAL);
     textFont('Inter');
     textSize(13);
@@ -370,7 +402,8 @@ function drawProjectPage(p, img, yPos, index, isMobile, pageH) {
       textFont('Inter');
       textSize(11);
       textStyle(BOLD);
-      text("VER PROYECTO ↗", textBlockX, yPos + pageH - 50);
+      let arrowOffset = isHover ? 4 : 0;
+      text("VER PROYECTO ↗", textBlockX + arrowOffset, yPos + pageH - 50);
     }
   } else {
     let imgH = 200;
@@ -378,7 +411,6 @@ function drawProjectPage(p, img, yPos, index, isMobile, pageH) {
 
     noStroke();
 
-    // Número gigante en Mulled Wine
     fill(COLOR_MULLED_WINE);
     textFont('Oswald');
     textSize(54);
@@ -386,11 +418,9 @@ function drawProjectPage(p, img, yPos, index, isMobile, pageH) {
     textAlign(LEFT, TOP);
     text(p.num, margin + 20, yPos + imgH + 25);
 
-    // Título en Mulled Wine
     textSize(20);
     text(p.titulo, margin + 100, yPos + imgH + 30, totalW - 120);
 
-    // Descripción en Charcoal
     fill(COLOR_CHARCOAL);
     textFont('Inter');
     textSize(12);
@@ -444,10 +474,12 @@ function drawFooter() {
 }
 
 // ==========================================
-// MODAL VISTA DETALLADA
+// MODAL CON ANIMACIÓN FLUIDA (ESCALA Y FADE)
 // ==========================================
 function drawModal() {
-  fill(25, 26, 30, 220);
+  // Fondo oscuro difuso con opacidad interpolada
+  fill(25, 26, 30, modalProgress * 210);
+  noStroke();
   rect(0, 0, width, height);
 
   let mw = min(720, width * 0.92);
@@ -455,14 +487,30 @@ function drawModal() {
   let mx = (width - mw) / 2;
   let my = (height - mh) / 2;
 
+  push();
+  // Aplicar transformación suave de escala desde el centro del modal
+  let centerX = mx + mw / 2;
+  let centerY = my + mh / 2;
+  translate(centerX, centerY);
+  scale(modalProgress);
+  translate(-centerX, -centerY);
+
+  // Sombra del modal
+  fill(0, 0, 0, 50);
+  noStroke();
+  rect(mx + 8, my + 8, mw, mh, 8);
+
+  // Cuerpo del modal
   fill(COLOR_GOAT_MILK);
   stroke(COLOR_MULLED_WINE);
   strokeWeight(2);
-  rect(mx, my, mw, mh);
+  rect(mx, my, mw, mh, 6);
 
   let p = proyectos[proyectoSeleccionado];
 
-  renderImagen(imagenes[proyectoSeleccionado], mx + 20, my + 20, mw - 40, mh - 160);
+  if (proyectoSeleccionado !== null && imagenes[proyectoSeleccionado]) {
+    renderImagen(imagenes[proyectoSeleccionado], mx + 20, my + 20, mw - 40, mh - 160);
+  }
 
   noStroke();
   fill(COLOR_MULLED_WINE);
@@ -476,17 +524,25 @@ function drawModal() {
   textSize(12);
   text(p.desc, mx + 25, my + mh - 85, mw - 50, 60);
 
-  fill(COLOR_SANDLIGHT);
+  // Botón de cierre vectorial mejorado
+  let closeBtnX = mx + mw - 25;
+  let closeBtnY = my + 25;
+  let isCloseHover = dist(mouseX, mouseY, closeBtnX, closeBtnY) < 18;
+
+  fill(isCloseHover ? COLOR_MULLED_WINE : COLOR_SANDLIGHT);
   stroke(COLOR_WOODLAND);
   strokeWeight(1);
-  ellipse(mx + mw - 25, my + 25, 30);
+  ellipse(closeBtnX, closeBtnY, 32);
 
   noStroke();
-  fill(COLOR_CHARCOAL);
+  fill(isCloseHover ? COLOR_GOAT_MILK : COLOR_CHARCOAL);
   textFont('Inter');
   textAlign(CENTER, CENTER);
   textSize(14);
-  text("✕", mx + mw - 25, my + 24);
+  textStyle(BOLD);
+  text("✕", closeBtnX, closeBtnY - 1);
+
+  pop();
 }
 
 function renderImagen(img, x, y, w, h) {
@@ -506,22 +562,23 @@ function renderImagen(img, x, y, w, h) {
 // MOUSE & SCROLL
 // ==========================================
 function mouseWheel(event) {
+  if (targetModalProgress > 0.5) return; // Bloquear scroll de fondo si el modal está abierto
   targetScrollY += event.delta;
   let maxScroll = max(0, totalHeight - height + 80);
   targetScrollY = constrain(targetScrollY, 0, maxScroll);
 }
 
 function mousePressed() {
-  if (proyectoSeleccionado !== null) {
+  if (targetModalProgress > 0.5) {
     let mw = min(720, width * 0.92);
     let mh = min(520, height * 0.85);
     let mx = (width - mw) / 2;
     let my = (height - mh) / 2;
 
-    if (dist(mouseX, mouseY, mx + mw - 25, my + 25) < 20 ||
+    if (dist(mouseX, mouseY, mx + mw - 25, my + 25) < 22 ||
         mouseX < mx || mouseX > mx + mw || mouseY < my || mouseY > my + mh) {
-      proyectoSeleccionado = null;
-    } else if (proyectos[proyectoSeleccionado].webUrl) {
+      targetModalProgress = 0; // Iniciar cierre animado
+    } else if (proyectos[proyectoSeleccionado] && proyectos[proyectoSeleccionado].webUrl) {
       window.open(proyectos[proyectoSeleccionado].webUrl, "_blank");
     }
     return;
@@ -539,6 +596,7 @@ function mousePressed() {
   for (let i = 0; i < proyectos.length; i++) {
     if (mouseX > margin && mouseX < margin + totalW && realMouseY > currentY && realMouseY < currentY + cardH) {
       proyectoSeleccionado = i;
+      targetModalProgress = 1; // Iniciar apertura animada
       return;
     }
     currentY += cardH + 40;
@@ -548,7 +606,7 @@ function mousePressed() {
   let btnH = 30;
   let btnX = width - btnW - 20;
   let btnY = height - 40;
-  if (mouseX > btnX && mouseX < btnX + btnW && mouseY > btnY && mouseY < btnY + btnH) {
+  if (mouseX > btnX && mouseX < btnX + btnW && mouseY > btnY && mouseY < mouseY + btnH) {
     window.open(GITHUB_PROFILE_URL, "_blank");
   }
 }
